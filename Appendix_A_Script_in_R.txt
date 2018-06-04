@@ -1,0 +1,259 @@
+Appendix A: Script in R
+
+#Descriptive analysis
+```{r echo = T, results='asis',message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+dad <- read.table(file="dad_tese.csv", sep = ";",header = T)
+  dadint <- dad %>%
+  select(num_range("int",1:6)) %>% 
+  summarise_all(funs(min = min, median = median,max = max,mean = mean, sd = sd))
+dadint2 <- dadint %>% gather(stat, val) %>%
+  separate(stat, into = c("var", "stat"), sep = "_") %>%
+  spread(stat, val) %>%
+  dplyr::select(var, min, median, max, mean, sd)
+dadint3 <- dadint2 %>%
+  mutate(CV = sd/mean)
+
+dadcol <- dad %>%
+  dplyr::select(num_range("col",1:7)) %>% 
+  summarise_all(funs(min = min, median = median,max = max,mean = mean, sd = sd))
+dadcol2 <- dadcol %>% gather(stat, val) %>%
+  separate(stat, into = c("var", "stat"), sep = "_") %>%
+  spread(stat, val) %>%
+  dplyr::select(var, min, median, max, mean, sd)
+dadcol3 <- dadcol2 %>%
+  mutate(CV = sd/mean)
+
+dadqua <- dad %>%
+  dplyr::select(num_range("qua",1:6)) %>% 
+  summarise_all(funs(min = min, median = median,max = max,mean = mean, sd = sd))
+dadqua2 <- dadqua %>% gather(stat, val) %>%
+  separate(stat, into = c("var", "stat"), sep = "_") %>%
+  spread(stat, val) %>%
+  dplyr::select(var, min, median, max, mean, sd)
+dadqua3 <- dadqua2 %>%
+  mutate(CV = sd/mean)
+  
+dadusa <- dad %>%
+  dplyr::select(num_range("usa",1:6)) %>% 
+  summarise_all(funs(min = min, median = median,max = max,mean = mean, sd = sd))
+dadusa2 <- dadusa %>% gather(stat, val) %>%
+  separate(stat, into = c("var", "stat"), sep = "_") %>%
+  spread(stat, val) %>%
+  dplyr::select(var, min, median, max, mean, sd)
+dadusa3 <- dadusa2 %>%
+  mutate(CV = sd/mean)
+  
+dadval <- dad %>%
+  dplyr::select(num_range("val",1:6)) %>% 
+  summarise_all(funs(min = min, median = median,max = max,mean = mean, sd = sd))
+dadval2 <- dadval %>% gather(stat, val) %>%
+  separate(stat, into = c("var", "stat"), sep = "_") %>%
+  spread(stat, val) %>%
+  dplyr::select(var, min, median, max, mean, sd)
+dadval3 <- dadval2 %>%
+  mutate(CV = sd/mean)
+  
+dadsatcon <- dad %>%
+  dplyr::select(sat1,sat2,sat3,con1,con2,con3) %>% 
+  summarise_all(funs(min = min, median = median,max = max,mean = mean, sd = sd))
+dadsatcon2 <- dadsatcon %>% gather(stat, val) %>%
+  separate(stat, into = c("var", "stat"), sep = "_") %>%
+  spread(stat, val) %>%
+  dplyr::select(var, min, median, max, mean, sd)
+dadsatcon3 <- dadsatcon2 %>%
+  mutate(CV = sd/mean)
+
+kable(dadint3, caption = "Interactivity measures")
+kable(dadcol3, caption = "Collaborative learning measures")
+kable(dadqua3, caption = "Quality measures")
+kable(dadusa3, caption = "Usability measures")
+kable(dadval3, caption = "Value measures")
+kable(dadsatcon3,caption = "Satisfactions and Continuance measures")
+```
+require(dplyr)
+require(ggplot2)
+require(ltm)
+require(tidyr)
+require(randomForest)
+require(caret)
+require(e1071)
+require(lavaan)
+
+#data
+setwd("~/Dropbox/2017.1/Tese/Analise")
+dad = read.table(file="dad_tese.csv", sep = ";",header = T)
+#creating samples with 50 and 100 observations
+dadb <- dad[sample(nrow(dad),100), ]
+dadc <- dad[sample(nrow(dad),50), ]
+#removing levels with count equal 0
+i=1
+for(i in 1:39) {
+  dadc[,i] <- factor(dadc[,i])
+}
+for(i in 1:39) {
+  dadb[,i] <- factor(dadb[,i])
+}
+for(i in 1:39) {
+  dad[,i] <- factor(dad[,i])
+}
+
+#irtmodel <- grm(dadltm, constrained = FALSE, IRT.param = TRUE, Hessian = FALSE,
+#start.val = NULL, na.action = NULL, control = list())
+#model for each construct
+int <- grm(dad[c(1:6)])
+col <- grm(dad[c(7:13)])
+qua <- grm(dad[c(14:19)])
+usa <- grm(dad[c(20:25)])
+val <- grm(dad[c(26:31)])
+satcon <- grm(dad[c(32:37)])
+#comparing with constrained models
+int2<- grm(dad[c(1:6)],constrained=T)
+anova(int2,int)
+col2<- grm(dad[c(7:13)],constrained=T)
+anova(col2,col)
+qua2<- grm(dad[c(14:19)],constrained=T)
+anova(qua2,qua)
+usa2<- grm(dad[c(20:25)],constrained=T)
+anova(usa2,usa)
+val2<- grm(dad[c(26:31)],constrained=T)
+anova(val2,val)
+satcon2<- grm(dad[c(32:37)],constrained=T)
+anova(satcon2,satcon)
+
+#results without coefficients
+int_res<- summary(int2); int_res[2:9]
+col_res <- summary(col); col_res[2:9]
+qua_res <- summary(qua); qua_res[2:9]
+usa_res <- summary(usa); usa_res[2:9]
+val_res <- summary(val); val_res[2:9]
+satcon_res <- summary(satcon); satcon_res[2:9]
+
+#creating grm models with samples
+intb <- grm(dadb[c(1:6)])
+colb <- grm(dadb[c(7:13)])
+quab <- grm(dadb[c(14:19)])
+usab <- grm(dadb[c(20:25)])
+valb <- grm(dadb[c(26:31)])
+satconb <- grm(dadb[c(32:37)])
+
+intc <- grm(dadc[c(1:6)])
+colc <- grm(dadc[c(7:13)])
+quac <- grm(dadc[c(14:19)])
+usac <- grm(dadc[c(20:25)])
+valc <- grm(dadc[c(26:31)])
+satconc <- grm(dadc[c(32:37)])
+
+#construct reliability
+cronbach.alpha(dad[,1:6])
+cronbach.alpha(dad[,7:13])
+cronbach.alpha(dad[,14:19])
+cronbach.alpha(dad[,20:25])
+cronbach.alpha(dad[,26:31])
+cronbach.alpha(dad[,32:37])
+
+#amount of information
+information(int2,c(-4,4))
+information(col,c(-4,4))
+information(qua,c(-4,4))
+information(usa,c(-4,4))
+information(val,c(-4,4))
+information(satcon,c(-4,4))
+
+#fit statistics with residuals in upper diagonal and p in lower
+margins.grm(int)
+margins.grm(col)
+margins.grm(qua)
+margins.grm(usa)
+margins.grm(val)
+margins.grm(satcon)
+
+#item characteristic curves, changing objects: "int", "col", "qua", "usa", "val" and "satcon"
+#Item Information Curves, changing objects: "int", "col", "qua", "usa", "val" and "satcon"
+par(mfrow = c(2,2))
+plot(int, type = "IIC", legend = TRUE, cx = "topright", lwd = 2, cex = 1,main = "IIC with 890")
+plot(intb, type = "ICC", legend = TRUE, cx = "topright", lwd = 2, cex = 1, main = "IIC with 100")
+plot(intc, type = "IIC", legend = TRUE, cx = "topright", lwd = 2, cex = 1, main = "IIC with 50")
+plot(int, type = "IIC", items = 0, lwd = 2)
+info1 <- information(int2, c(-4, 0))
+info2 <- information(int2, c(0, 4))
+text(-1, 4, labels = paste("Total Information:", round(info1$InfoTotal, 3),
+"\n\nInformation in (-4, 0):", round(info1$InfoRange, 3),
+paste("(", round(100 * info1$PropRange, 2), "%)", sep = ""),
+"\n\nInformation in (0, 4):", round(info2$InfoRange, 3),
+paste("(", round(100 * info2$PropRange, 2), "%)", sep = "")), cex = 1)
+
+#Pearson correlations
+rcor.test(dad[,1:6],method="pearson")
+rcor.test(dad[,7:13],method="pearson")
+rcor.test(dad[,14:19],method="pearson")
+rcor.test(dad[,20:25],method="pearson")
+rcor.test(dad[,26:31],method="pearson")
+rcor.test(dad[,32:37],method="pearson")
+
+#factor scores for person
+fint <- factor.scores(int)
+colt <- factor.scores(col)
+quat <- factor.scores(qua)
+usat <- factor.scores(usa)
+valt <- factor.scores(val)
+satcont <- factor.scores(satcon)
+
+#kernel density estimation for factor scores
+par(mfrow = c(2,3))
+plot(fint, include.items = TRUE, main = "KDE for Interactivity")
+plot(colt, include.items = TRUE, main = "KDE for Collaborative Learning")
+plot(quat, include.items = TRUE, main = "KDE for Quality")
+plot(usat, include.items = TRUE, main = "KDE for Usability")
+plot(valt, include.items = TRUE, main = "KDE for Value")
+plot(satcont, include.items = TRUE, main = "KDE for Satisfaction and Continuance")
+
+#correlations
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r <- abs(cor(x, y))
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste0(prefix, txt)
+  if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+pairs(dad[1:6], lower.panel = panel.smooth, upper.panel = panel.cor)
+pairs(dad[7:13], lower.panel = panel.smooth, upper.panel = panel.cor)
+pairs(dad[14:19], lower.panel = panel.smooth, upper.panel = panel.cor)
+pairs(dad[20:25], lower.panel = panel.smooth, upper.panel = panel.cor)
+pairs(dad[26:31], lower.panel = panel.smooth, upper.panel = panel.cor)
+pairs(dad[32:37], lower.panel = panel.smooth, upper.panel = panel.cor)
+panel.hist <- function(x, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(usr[1:2], 0, 1.5) )
+  h <- hist(x, plot = FALSE)
+  breaks <- h$breaks; nB <- length(breaks)
+  y <- h$counts; y <- y/max(y)
+  rect(breaks[-nB], 0, breaks[-1], y, col = "cyan", ...)
+}
+pairs(dad[1:6],panel = panel.smooth, cex = .5, pch = 24, bg = "light blue",
+      diag.panel = panel.hist, cex.labels = 1.5, font.labels = 1.5)
+pairs(dad[7:13],panel = panel.smooth, cex = .5, pch = 24, bg = "light blue",
+      diag.panel = panel.hist, cex.labels = 1.5, font.labels = 1.5)
+pairs(dad[14:19],panel = panel.smooth, cex = .5, pch = 24, bg = "light blue",
+      diag.panel = panel.hist, cex.labels = 1.5, font.labels = 1.5)
+pairs(dad[20:25],panel = panel.smooth, cex = .5, pch = 24, bg = "light blue",
+      diag.panel = panel.hist, cex.labels = 1.5, font.labels = 1.5)
+pairs(dad[26:31],panel = panel.smooth, cex = .5, pch = 24, bg = "light blue",
+      diag.panel = panel.hist, cex.labels = 1.5, font.labels = 1.5)
+pairs(dad[32:37],panel = panel.smooth, cex = .5, pch = 24, bg = "light blue",
+      diag.panel = panel.hist, cex.labels = 1.5, font.labels = 1.5)
+
+#composite reliability
+dadi <- dad[,32:37]
+items <- paste(names(dadi),collapse = "+")
+model <- paste("extraversion", items, sep = "=~")
+fit <- cfa(model, data = dadi)
+sl <- standardizedSolution(fit)
+sl <- sl$est.std[sl$op == "=~"]
+names(sl) <- names(dadi)
+re <- 1-sl^2
+sum(sl)^2 / (sum(sl)^2 + sum(re))
